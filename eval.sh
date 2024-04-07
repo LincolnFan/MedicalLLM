@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=0,1 python eval.py --model_type bloom --base_model merged-sft-7b --interactive --data_file /data/flj22/dataset/tcm/bench/0708_medqa_tcm_score_test_100.json --output_file ./output-sft-7b.json
