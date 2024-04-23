@@ -131,19 +131,19 @@ def main():
         model.float()
 
 
-    
+    model.eval()
     # 加载评估数据集
     with open(args.data_file, 'r') as f:
         data = json.load(f)
 
-    # 初始化模型和分词器
-    model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
-    tokenizer = tokenizer_class.from_pretrained(args.tokenizer_path, trust_remote_code=True)
-    model = model_class.from_pretrained(
-        args.base_model,
-        torch_dtype=torch.float32,  # 使用float32进行评估
-        trust_remote_code=True,
-    ).to(device)
+    # # 初始化模型和分词器
+    # model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+    # tokenizer = tokenizer_class.from_pretrained(args.tokenizer_path, trust_remote_code=True)
+    # model = model_class.from_pretrained(
+    #     args.base_model,
+    #     torch_dtype=torch.float32,  # 使用float32进行评估
+    #     trust_remote_code=True,
+    # ).to(device)
 
 
 
@@ -162,14 +162,21 @@ def main():
             for item in tqdm.tqdm(data):
                 question = item["instruction"]
                 reference_answer = item["output"]
-                input = item['input']
+                input_content = item['input']
+            
                 
+                if args.with_prompt is True:
+                    input_text = generate_prompt(instruction=question, input=input_content)
+                else:
+                    input_text = question + input_content if input_content else question
 
-                input_text = question + input if input else question
+
+
                 inputs = tokenizer(input_text, return_tensors="pt")
                 generation_output = model.generate(
                     input_ids=inputs["input_ids"].to(device),
-                    eos_token_id=tokenizer.eos_token_id,
+                    bos_token_id=tokenizer.bos_token_id,
+                    # eos_token_id=tokenizer.eos_token_id,
                     pad_token_id=tokenizer.pad_token_id,
                     **generation_config
                 )
@@ -180,6 +187,8 @@ def main():
                     generated_response = output.split("### Response:")[1].strip()
                 else:
                     generated_response = output
+                
+                print('generated_response:', generated_response)
 
                 # 移除参考答案中的标记，如果存在
                 reference_answer = reference_answer.replace("reference", "")
